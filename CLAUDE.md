@@ -1,23 +1,56 @@
-# LLM Wiki Agent — Schema & Workflow Instructions
+# CLAUDE.md
 
-This wiki is maintained entirely by Claude Code. No API key or Python scripts needed — just open this repo in Claude Code and talk to it.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Slash Commands (Claude Code)
+## What This Repo Is
 
-| Command | What to say |
+A coding-agent-maintained wiki. Drop source documents into `raw/` and use the slash commands below — the agent reads them, extracts structured knowledge, and maintains a persistent interlinked wiki. No API key or Python setup needed for the agent path.
+
+---
+
+## Slash Commands
+
+| Command | Purpose |
 |---|---|
-| `/wiki-ingest` | `ingest raw/my-article.md` |
-| `/wiki-query` | `query: what are the main themes?` |
-| `/wiki-lint` | `lint the wiki` |
-| `/wiki-graph` | `build the knowledge graph` |
+| `/wiki-ingest raw/my-article.md` | Ingest a source document |
+| `/wiki-query "question?"` | Synthesize an answer from wiki pages |
+| `/wiki-lint` | Find orphans, broken links, contradictions, data gaps |
+| `/wiki-graph` | Build `graph/graph.html` and `graph/graph.json` |
+| `/wiki-sync-history` | Sync Claude Code + Gemini CLI session histories into wiki |
 
-Or just describe what you want in plain English:
-- *"Ingest this file: raw/papers/attention-is-all-you-need.md"*
-- *"What does the wiki say about transformer models?"*
-- *"Check the wiki for orphan pages and contradictions"*
-- *"Build the graph and show me what's connected to RAG"*
+Plain English also works — just describe what you want.
 
-Claude Code reads this file automatically and follows the workflows below.
+---
+
+## Python Tools (Optional — require `ANTHROPIC_API_KEY`)
+
+Install dependencies:
+```bash
+pip install -r requirements.txt   # litellm>=1.0.0, networkx>=3.2
+```
+
+Run standalone tools:
+```bash
+python tools/build_graph.py               # full rebuild
+python tools/build_graph.py --no-infer    # skip semantic inference (faster)
+python tools/build_graph.py --open        # open graph.html in browser after build
+python tools/build_graph.py --clean       # delete checkpoint and force full re-inference
+python tools/build_graph.py --report      # generate graph health report to stdout
+python tools/build_graph.py --report --save  # save report to graph/graph-report.md
+
+python tools/lint.py
+python tools/lint.py --save               # save lint report to wiki/lint-report.md
+
+python tools/sync_sessions.py             # dry run — show what would be synced
+python tools/sync_sessions.py --ingest    # convert sessions to raw/sessions/ + ingest into wiki
+python tools/sync_sessions.py --all       # include all projects (default: current project only)
+python tools/sync_sessions.py --force     # re-process already-synced sessions
+python tools/sync_sessions.py --no-summary  # dump raw transcript, skip LLM summarization
+```
+
+The graph tool uses SHA256 caching (`graph/.cache.json`) and a JSONL checkpoint (`graph/.inferred_edges.jsonl`) so only changed pages trigger re-inference.
+
+**LLM model override:** Set `LLM_MODEL_FAST` env var to change the model used for semantic inference (default: `claude-3-5-haiku-latest`).
 
 ---
 
@@ -34,7 +67,10 @@ wiki/         # Claude owns this layer entirely
   concepts/   # Ideas, frameworks, methods, theories
   syntheses/  # Saved query answers
 graph/        # Auto-generated graph data
-tools/        # Optional standalone Python scripts (require ANTHROPIC_API_KEY)
+  graph.json  # Node/edge data (SHA256-cached)
+  graph.html  # Interactive vis.js visualization
+tools/        # Optional standalone Python scripts
+.claude/commands/  # Slash command definitions
 ```
 
 ---
@@ -57,9 +93,18 @@ Use `[[PageName]]` wikilinks to link to other wiki pages.
 
 ---
 
+## Naming Conventions
+
+- Source slugs: `kebab-case` matching source filename
+- Entity pages: `TitleCase.md` (e.g. `OpenAI.md`, `SamAltman.md`)
+- Concept pages: `TitleCase.md` (e.g. `ReinforcementLearning.md`, `RAG.md`)
+- Source pages: `kebab-case.md`
+
+---
+
 ## Ingest Workflow
 
-Triggered by: *"ingest <file>"* or `/wiki-ingest`
+Triggered by: *"ingest \<file>"* or `/wiki-ingest`
 
 Steps (in order):
 1. Read the source document fully using the Read tool
@@ -148,7 +193,7 @@ date: YYYY-MM-DD
 
 ## Query Workflow
 
-Triggered by: *"query: <question>"* or `/wiki-query`
+Triggered by: *"query: \<question>"* or `/wiki-query`
 
 Steps:
 1. Read `wiki/index.md` to identify relevant pages
@@ -191,13 +236,6 @@ If the user doesn't have Python/dependencies set up, instead generate the graph 
 4. Write `graph/graph.html` using the vis.js template
 
 ---
-
-## Naming Conventions
-
-- Source slugs: `kebab-case` matching source filename
-- Entity pages: `TitleCase.md` (e.g. `OpenAI.md`, `SamAltman.md`)
-- Concept pages: `TitleCase.md` (e.g. `ReinforcementLearning.md`, `RAG.md`)
-- Source pages: `kebab-case.md`
 
 ## Index Format
 

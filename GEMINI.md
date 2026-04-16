@@ -15,6 +15,7 @@ Or use shorthand triggers:
 - `query: <question>` → runs the Query Workflow
 - `lint` → runs the Lint Workflow
 - `build graph` → runs the Graph Workflow
+- `sync history` → runs the Sync History Workflow
 
 ---
 
@@ -163,6 +164,54 @@ Check for: orphan pages, broken links, contradictions, stale content, missing en
 Triggered by: *"build graph"*
 
 Try `python tools/build_graph.py --open` first. If unavailable, build graph.json and graph.html manually from wikilinks.
+
+---
+
+## Sync History Workflow
+
+Triggered by: *"sync history"*
+
+Reads Gemini CLI session histories from `~/.gemini/tmp/<project-hash>/chats/` and Claude Code sessions from `~/.claude/projects/<slug>/`, summarizes each meaningful session (≥3 turns) into a structured markdown file in `raw/sessions/`, then ingests them into the wiki.
+
+The project hash for Gemini is: SHA256 of the absolute project directory path.
+
+For each new session:
+1. Parse conversation turns (user and gemini/assistant messages)
+2. Summarize into the Session Summary template (see below)
+3. Save to `raw/sessions/YYYY-MM-DD-<source>-<session-id-first-8>.md`
+4. Run the Ingest Workflow on the new file
+5. Track processed session IDs in `raw/sessions/.processed.json`
+
+### Session Summary Template
+
+```markdown
+---
+title: "YYYY-MM-DD Session: <short topic>"
+type: source
+tags: [session, gemini-cli|claude-code]
+date: YYYY-MM-DD
+source_file: raw/sessions/<filename>
+session_id: <id>
+---
+
+## Goal
+What was the main task being worked on?
+
+## Key Discussions
+- Topic 1
+
+## Decisions Made
+- Decision 1
+
+## Insights & Patterns
+- Insight 1
+
+## Next Steps
+- Step 1
+
+## Connections
+- [[ConceptName]] — how it relates
+```
 
 ---
 
